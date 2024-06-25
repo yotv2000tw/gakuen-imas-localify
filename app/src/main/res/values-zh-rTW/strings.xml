@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Gakumas Localify</string>
+    <string name="app_name">Gakumas Localify 繁體中文(台灣)</string>
     <string name="gakumas_localify">Gakumas Localify 繁體中文(台灣)</string>
     <string name="enable_plugin">啟用插件 (不可熱重載)</string>
     <string name="replace_font">替換字體</string>
@@ -60,8 +60,8 @@
     <string name="about_about_p1">本插件完全免費。若您付費購買了本插件，請檢舉店家。</string>
     <string name="about_about_p2">遊戲與插件交流群: discord.gg/gkmas</string>
     <string name="project_contribution">項目貢獻</string>
-    <string name="plugin_code">插件本體</string>
-    <string name="contributors">貢獻者列表</string>
+    <string name="plugin_code">插件本體（繁體中文(台灣)版）</string>
+    <string name="contributors">貢獻者列表（繁體中文(台灣)版）</string>
     <string name="translation_repository">譯文倉庫</string>
 
     <string name="about_contributors_asset_file">about_contributors_zh_tw.json</string>
