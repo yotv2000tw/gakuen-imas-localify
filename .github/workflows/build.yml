@@ -33,6 +33,7 @@ jobs:
         hash=$(git rev-parse --short=8 HEAD)
         echo "$branch.$hash" > app/src/main/assets/gakumas-local/version.txt
         echo "VERSION=$branch.$hash" >> $GITHUB_ENV
+        echo "BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -82,8 +83,8 @@ jobs:
       with:
         webhook: ${{ secrets.DISCORD_WEBHOOK }}
         nodetail: true
-        title: New version of Gakuen-IMAS-Localify-zh-TW is already!
+        title: ［${{ env.BRANCH }}］New version of Gakuen Localify is already!
         color: 0xffd1dc
         description: |
           * Version: `${{ env.VERSION }}`
-          * [下載](https://nightly.link/yotv2000tw/gakuen-imas-localify-zh-TW/workflows/build/main/GakumasLocalify-zh-TW.zip)
+          * [下載](https://nightly.link/yotv2000tw/gakuen-imas-localify-zh-TW/workflows/build/${{ env.BRANCH }}/GakumasLocalify-zh-TW.zip)
