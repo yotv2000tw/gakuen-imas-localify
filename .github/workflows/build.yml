@@ -83,7 +83,7 @@ jobs:
       with:
         webhook: ${{ secrets.DISCORD_WEBHOOK }}
         nodetail: true
-        title: ［${{ env.BRANCH }}］ New version of Gakuen Localify is already!
+        title: ［${{ env.BRANCH }}］New version of Gakuen Localify is already!
         color: 0xffd1dc
         description: |
           * Version: `${{ env.VERSION }}`
