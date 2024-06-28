@@ -85,11 +85,14 @@ jobs:
         title: \[ ${{ env.BRANCH }}\ ] New version of Gakuen Localify is already!
         color: 0xffd1dc
         description: |
-          * Category: ${{ env.BRANCH }}
-          * [下載](https://nightly.link/yotv2000tw/gakuen-imas-localify-zh-TW/workflows/build/${{ env.BRANCH }}/GakumasLocalify-zh-TW.zip)
+          ### 版本資料
+          * Category: `${{ env.BRANCH }}`
+          ### 說明
           * 有關 Category:
             * `main`: 正式版。建議更新。
             * `preview`: 預覽版。高機率存在問題，不建議下載更新。
+            * `HEAD`: pull request版。高機率存在問題，不建議下載更新。
           * 有關 Assets Version:
             * `main`: 正式版。建議更新。
-            * `preview`: 預覽版。一般來講
+            * `preview`: 預覽版。一般來講\
+          ### [點擊此處下載 [ ${{ env.BRANCH }} ] 版](https://nightly.link/yotv2000tw/gakuen-imas-localify-zh-TW/workflows/build/${{ env.BRANCH }}/GakumasLocalify-zh-TW.zip)
