@@ -1,6 +1,5 @@
 package io.github.chinosk.gakumas.localify
 
-import SplashScreen
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -8,41 +7,58 @@ import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
-import androidx.compose.runtime.Composable
-import androidx.databinding.DataBindingUtil
-import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
-import io.github.chinosk.gakumas.localify.databinding.ActivityMainBinding
-import io.github.chinosk.gakumas.localify.hookUtils.FilesChecker
-import io.github.chinosk.gakumas.localify.hookUtils.MainKeyEventDispatcher
-import io.github.chinosk.gakumas.localify.models.GakumasConfig
-import io.github.chinosk.gakumas.localify.ui.theme.GakumasLocalifyTheme
-import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.core.content.FileProvider
+import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import io.github.chinosk.gakumas.localify.databinding.ActivityMainBinding
+import io.github.chinosk.gakumas.localify.hookUtils.FileHotUpdater
+import io.github.chinosk.gakumas.localify.hookUtils.FilesChecker
+import io.github.chinosk.gakumas.localify.hookUtils.MainKeyEventDispatcher
+import io.github.chinosk.gakumas.localify.mainUtils.json
+import io.github.chinosk.gakumas.localify.models.GakumasConfig
+import io.github.chinosk.gakumas.localify.models.ProgramConfig
+import io.github.chinosk.gakumas.localify.models.ProgramConfigSerializer
+import io.github.chinosk.gakumas.localify.models.ProgramConfigViewModel
+import io.github.chinosk.gakumas.localify.models.ProgramConfigViewModelFactory
 import io.github.chinosk.gakumas.localify.ui.pages.MainUI
+import io.github.chinosk.gakumas.localify.ui.theme.GakumasLocalifyTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
+import java.io.File
 
 
 class MainActivity : ComponentActivity(), ConfigUpdateListener {
     override lateinit var binding: ActivityMainBinding
+    override lateinit var programConfig: ProgramConfig
 
     override lateinit var factory: UserConfigViewModelFactory
     override lateinit var viewModel: UserConfigViewModel
+
+    override lateinit var programConfigFactory: ProgramConfigViewModelFactory
+    override lateinit var programConfigViewModel: ProgramConfigViewModel
 
     override fun onClickStartGame() {
         val intent = Intent().apply {
             setClassName("com.bandainamcoent.idolmaster_gakuen", "com.google.firebase.MessagingUnityPlayerActivity")
             putExtra("gkmsData", getConfigContent())
+            putExtra("localData", getProgramConfigContent(listOf("transRemoteZipUrl", "p")))
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
+
+        val updateFile = File(filesDir, "update_trans.zip")
+        if (updateFile.exists()) {
+            val dirUri = FileProvider.getUriForFile(this, "io.github.chinosk.gakumas.localify.fileprovider", File(updateFile.absolutePath))
+            intent.setDataAndType(dirUri, "resource/file")
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+
         startActivity(intent)
     }
 
@@ -61,6 +77,21 @@ class MainActivity : ComponentActivity(), ConfigUpdateListener {
         }
     }
 
+    private fun getProgramConfigContent(excludes: List<String> = emptyList()): String {
+        if (excludes.isEmpty()) {
+            val configFile = File(filesDir, "localify-config.json")
+            return if (configFile.exists()) {
+                configFile.readText()
+            }
+            else {
+                "{}"
+            }
+        }
+        else {
+            return json.encodeToString(ProgramConfigSerializer(excludes),  programConfig)
+        }
+    }
+
     override fun saveConfig() {
         try {
             binding.config!!.pf = false
@@ -70,7 +101,19 @@ class MainActivity : ComponentActivity(), ConfigUpdateListener {
             Log.d(TAG, e.toString())
         }
         val configFile = File(filesDir, "gkms-config.json")
-        configFile.writeText(Gson().toJson(binding.config!!))
+        configFile.writeText(json.encodeToString(binding.config!!))
+    }
+
+    override fun saveProgramConfig() {
+        try {
+            programConfig.p = false
+            programConfigViewModel.configState.value = programConfig.copy( p = true )  // 更新 UI
+        }
+        catch (e: RuntimeException) {
+            Log.d(TAG, e.toString())
+        }
+        val configFile = File(filesDir, "localify-config.json")
+        configFile.writeText(json.encodeToString(programConfig))
     }
 
     fun getVersion(): List<String> {
@@ -100,13 +143,21 @@ class MainActivity : ComponentActivity(), ConfigUpdateListener {
     private fun loadConfig() {
         val configStr = getConfigContent()
         binding.config = try {
-            Gson().fromJson(configStr, GakumasConfig::class.java)
+            json.decodeFromString<GakumasConfig>(configStr)
         }
-        catch (e: JsonSyntaxException) {
+        catch (e: SerializationException) {
             showToast("配置文件异常，已重置: $e")
-            Gson().fromJson("{}", GakumasConfig::class.java)
+            GakumasConfig()
         }
         saveConfig()
+
+        val programConfigStr = getProgramConfigContent()
+        programConfig = try {
+            json.decodeFromString<ProgramConfig>(programConfigStr)
+        }
+        catch (e: SerializationException) {
+            ProgramConfig()
+        }
     }
 
     override fun checkConfigAndUpdateView() {
@@ -151,8 +202,13 @@ class MainActivity : ComponentActivity(), ConfigUpdateListener {
         factory = UserConfigViewModelFactory(binding.config!!)
         viewModel = ViewModelProvider(this, factory)[UserConfigViewModel::class.java]
 
+        programConfigFactory = ProgramConfigViewModelFactory(programConfig,
+            FileHotUpdater.getZipResourceVersion(File(filesDir, "update_trans.zip").absolutePath).toString()
+        )
+        programConfigViewModel = ViewModelProvider(this, programConfigFactory)[ProgramConfigViewModel::class.java]
+
         setContent {
-            GakumasLocalifyTheme(dynamicColor = false) {
+            GakumasLocalifyTheme(dynamicColor = false, darkTheme = false) {
                 MainUI(context = this)
                 /*
                 val navController = rememberNavController()
@@ -178,6 +234,61 @@ fun getConfigState(context: MainActivity?, previewData: GakumasConfig?): State<G
     }
     else {
         val configMSF = MutableStateFlow(previewData!!)
+        configMSF.asStateFlow().collectAsState()
+    }
+}
+
+@Composable
+fun getProgramConfigState(context: MainActivity?, previewData: ProgramConfig? = null): State<ProgramConfig> {
+    return if (context != null) {
+        context.programConfigViewModel.config.collectAsState()
+    }
+    else {
+        val configMSF = MutableStateFlow(previewData ?: ProgramConfig())
+        configMSF.asStateFlow().collectAsState()
+    }
+}
+
+@Composable
+fun getProgramDownloadState(context: MainActivity?): State<Float> {
+    return if (context != null) {
+        context.programConfigViewModel.downloadProgress.collectAsState()
+    }
+    else {
+        val configMSF = MutableStateFlow(0f)
+        configMSF.asStateFlow().collectAsState()
+    }
+}
+
+@Composable
+fun getProgramDownloadAbleState(context: MainActivity?): State<Boolean> {
+    return if (context != null) {
+        context.programConfigViewModel.downloadAble.collectAsState()
+    }
+    else {
+        val configMSF = MutableStateFlow(true)
+        configMSF.asStateFlow().collectAsState()
+    }
+}
+
+@Composable
+fun getProgramLocalResourceVersionState(context: MainActivity?): State<String> {
+    return if (context != null) {
+        context.programConfigViewModel.localResourceVersion.collectAsState()
+    }
+    else {
+        val configMSF = MutableStateFlow("null")
+        configMSF.asStateFlow().collectAsState()
+    }
+}
+
+@Composable
+fun getProgramDownloadErrorStringState(context: MainActivity?): State<String> {
+    return if (context != null) {
+        context.programConfigViewModel.errorString.collectAsState()
+    }
+    else {
+        val configMSF = MutableStateFlow("")
         configMSF.asStateFlow().collectAsState()
     }
 }

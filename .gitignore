@@ -8,7 +8,6 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
-/app
 /build
 /captures
 .externalNativeBuild
@@ -16,4 +15,6 @@
 local.properties
 /.idea
 /.vs
-
+/.kotlin
+/app/debug
+/app/release
