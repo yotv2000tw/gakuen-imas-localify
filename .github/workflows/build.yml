@@ -85,9 +85,7 @@ jobs:
         title: \[ ${{ env.BRANCH }} \] New version of Gakuen Localify is already!
         color: 0xffd1dc
         description: |
-          ### 插件版本資料
-          * Category: `${{ env.BRANCH }}`
-          * Version: `${{ env.VERSION }}`
+          ### Version: `${{ env.VERSION }}`
           ### 說明
           * 有關插件版本:
             * `main`: 正式版。建議更新。
